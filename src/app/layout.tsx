@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
+import SiteFooter from "@/components/SiteFooter";
 
 const body = Barlow({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="zh-CN" className={`${body.variable} ${display.variable}`}>
       <body className="min-h-screen bg-mist font-body text-ink antialiased">
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

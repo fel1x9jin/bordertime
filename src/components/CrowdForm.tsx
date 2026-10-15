@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import type { Crowd } from "@/lib/types";
+import type { SubmitResult } from "@/lib/useReports";
 import CrowdPicker from "./CrowdPicker";
 
 interface Props {
-  onSubmit: (crowd: Crowd) => Promise<boolean>;
+  onSubmit: (crowd: Crowd) => Promise<SubmitResult>;
 }
 
 /** 不计时，只提交“现在大概有多挤” */
 export default function CrowdForm({ onSubmit }: Props) {
   const [crowd, setCrowd] = useState<Crowd | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState<"idle" | "done" | "failed">("idle");
+  const [status, setStatus] = useState<"idle" | "done" | "failed" | "rate_limited">("idle");
 
   // 成功提示 6 秒后自动消失
   useEffect(() => {
@@ -24,13 +25,13 @@ export default function CrowdForm({ onSubmit }: Props) {
   async function handleSubmit() {
     if (!crowd || submitting) return;
     setSubmitting(true);
-    const ok = await onSubmit(crowd);
+    const result = await onSubmit(crowd);
     setSubmitting(false);
-    if (ok) {
+    if (result === "ok") {
       setCrowd(null);
       setStatus("done");
     } else {
-      setStatus("failed");
+      setStatus(result === "rate_limited" ? "rate_limited" : "failed");
     }
   }
 
@@ -54,6 +55,11 @@ export default function CrowdForm({ onSubmit }: Props) {
       {status === "done" && (
         <p role="status" className="text-sm text-ok">
           已提交，谢谢你的报告。
+        </p>
+      )}
+      {status === "rate_limited" && (
+        <p role="alert" className="text-sm text-bad">
+          提交太频繁了：同一个网络 10 分钟内最多提交 6 条，请稍后再试。
         </p>
       )}
       {status === "failed" && (

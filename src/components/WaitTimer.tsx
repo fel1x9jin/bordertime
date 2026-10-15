@@ -5,6 +5,7 @@ import { clearTimer, loadTimer, saveTimer } from "@/lib/storage";
 import { formatDuration } from "@/lib/format";
 import { DIRECTION_LABEL } from "@/lib/types";
 import type { ActiveTimer, Airport, Crowd, Direction } from "@/lib/types";
+import type { SubmitResult } from "@/lib/useReports";
 import CrowdPicker from "./CrowdPicker";
 
 /** 超过 6 小时的计时视为忘记结束，不允许提交 */
@@ -20,7 +21,7 @@ export interface TimerResult {
 interface Props {
   airport: Airport;
   direction: Direction;
-  onSubmit: (result: TimerResult) => Promise<boolean>;
+  onSubmit: (result: TimerResult) => Promise<SubmitResult>;
 }
 
 const primaryButton =
@@ -37,7 +38,7 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
   const [crowd, setCrowd] = useState<Crowd | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<"rate_limited" | "error" | null>(null);
 
   // 计时状态保存在浏览器里，刷新页面不会丢
   useEffect(() => {
@@ -81,7 +82,7 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     update(t);
     setNow(t.startedAt);
     setSubmitted(false);
-    setFailed(false);
+    setFailure(null);
   }
 
   function reachDesk() {
@@ -98,7 +99,7 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     clearTimer();
     setTimer(null);
     setCrowd(null);
-    setFailed(false);
+    setFailure(null);
   }
 
   async function submit() {
@@ -108,8 +109,8 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     const reachedDeskAt = timer.reachedDeskAt;
 
     setSubmitting(true);
-    setFailed(false);
-    const ok = await onSubmit({
+    setFailure(null);
+    const result = await onSubmit({
       waitMinutes: Math.max(1, toMinutes(endedAt - startedAt)),
       queueMinutes:
         reachedDeskAt !== null ? toMinutes(reachedDeskAt - startedAt) : null,
@@ -119,8 +120,8 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     });
     setSubmitting(false);
 
-    if (!ok) {
-      setFailed(true); // 计时结果还在，用户可以再试一次
+    if (result !== "ok") {
+      setFailure(result === "rate_limited" ? "rate_limited" : "error"); // 计时结果还在，用户可以再试一次
       return;
     }
     clearTimer();
@@ -221,7 +222,12 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
             <CrowdPicker value={crowd} onChange={setCrowd} />
           </>
         )}
-        {failed && (
+        {failure === "rate_limited" && (
+          <p role="alert" className="leading-relaxed text-bad">
+            提交太频繁了：同一个网络 10 分钟内最多提交 6 条。你的计时结果还在，请稍后再点一次「提交报告」。
+          </p>
+        )}
+        {failure === "error" && (
           <p role="alert" className="leading-relaxed text-bad">
             提交失败，网络或服务器暂时有问题。你的计时结果还在，稍后可以再点一次「提交报告」。
           </p>

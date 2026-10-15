@@ -6,6 +6,8 @@ import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { loadUserReports, saveUserReports } from "./storage";
 import type { Crowd, Direction, Report } from "./types";
 
+export type SubmitResult = "ok" | "rate_limited" | "error";
+
 export type NewReport = Omit<Report, "id" | "createdAt" | "source">;
 
 /** 读取最近 24 小时的报告；估算时只用其中最近 3 小时的 */
@@ -103,9 +105,9 @@ export function useReports() {
     [mockReports, localReports, remoteReports],
   );
 
-  /** 提交成功返回 true，失败返回 false（界面据此提示用户） */
+  /** 返回提交结果，界面据此显示不同提示 */
   const addReport = useCallback(
-    async (input: NewReport): Promise<boolean> => {
+    async (input: NewReport): Promise<SubmitResult> => {
       const supabase = getSupabase();
 
       if (supabase) {
@@ -117,9 +119,13 @@ export function useReports() {
           processing_minutes: input.processingMinutes,
           crowd: input.crowd,
         });
-        if (error) return false;
+        if (error) {
+          return error.message.includes("rate_limited")
+            ? "rate_limited"
+            : "error";
+        }
         await fetchRemote();
-        return true;
+        return "ok";
       }
 
       const createdAt = Date.now();
@@ -133,7 +139,7 @@ export function useReports() {
       saveUserReports(next);
       setLocalReports(next);
       setNow(createdAt);
-      return true;
+      return "ok";
     },
     [fetchRemote, localReports],
   );
