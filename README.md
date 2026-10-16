@@ -1,9 +1,8 @@
 # BorderTime
-  在线访问：https://bordertime.vercel.app
 旅客共享的全球机场出入境边检排队时间。出发前看一眼，通过边检后也记一笔，
 帮后面的人少排一会儿。
 
-> 当前是 **第一阶段**：只使用本地模拟数据，没有后端，也没有账号系统。
+> 已上线：https://bordertime.vercel.app 。报告保存在 Supabase 数据库中，没有账号系统。
 
 ## 数据规则
 
