@@ -25,7 +25,7 @@ export default async function AirportPage({ params }: Props) {
   if (!airport) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-20 pt-6 sm:pt-10">
+    <main>
       <AirportDetail airport={airport} />
     </main>
   );

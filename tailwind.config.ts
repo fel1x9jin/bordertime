@@ -30,6 +30,19 @@ const config: Config = {
           "sans-serif",
         ],
       },
+      boxShadow: {
+        card: "0 14px 34px -22px rgba(11, 31, 54, 0.55)",
+        lift: "0 24px 44px -24px rgba(11, 31, 54, 0.62)",
+      },
+      keyframes: {
+        rise: {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        rise: "rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both",
+      },
     },
   },
   plugins: [],

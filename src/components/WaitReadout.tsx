@@ -18,7 +18,7 @@ export default function WaitReadout({ minutes, loading = false, size = "sm" }: P
 
   if (minutes === null) {
     return (
-      <p className={`font-medium text-slate-300 ${big ? "text-3xl" : "text-lg"}`}>
+      <p className={`font-medium text-slate-300 ${big ? "text-4xl" : "text-lg"}`}>
         暂无数据
       </p>
     );
@@ -28,7 +28,7 @@ export default function WaitReadout({ minutes, loading = false, size = "sm" }: P
     <p className="text-sign">
       <span
         className={`font-display font-bold leading-none tabular-nums ${
-          big ? "text-7xl" : "text-4xl"
+          big ? "text-8xl" : "text-4xl"
         }`}
       >
         {minutes}

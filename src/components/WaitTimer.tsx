@@ -6,6 +6,7 @@ import { formatDuration } from "@/lib/format";
 import { DIRECTION_LABEL } from "@/lib/types";
 import type { ActiveTimer, Airport, Crowd, Direction } from "@/lib/types";
 import type { SubmitResult } from "@/lib/useReports";
+import { primaryButtonClass, secondaryButtonClass } from "./buttons";
 import CrowdPicker from "./CrowdPicker";
 
 /** 超过 6 小时的计时视为忘记结束，不允许提交 */
@@ -24,10 +25,8 @@ interface Props {
   onSubmit: (result: TimerResult) => Promise<SubmitResult>;
 }
 
-const primaryButton =
-  "min-h-12 w-full bg-board px-4 py-3 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto";
-const secondaryButton =
-  "min-h-12 w-full border border-line bg-white px-4 py-3 font-medium sm:w-auto";
+const primaryButton = primaryButtonClass;
+const secondaryButton = secondaryButtonClass;
 
 const toMinutes = (ms: number) => Math.round(ms / 60000);
 
@@ -154,7 +153,7 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     const atDesk = timer.reachedDeskAt !== null;
     return (
       <div className="space-y-4">
-        <div className="bg-board px-5 py-4 text-sign" role="timer" aria-live="off">
+        <div className="rounded-2xl bg-board px-5 py-5 text-sign shadow-card" role="timer" aria-live="off">
           <p className="text-sm text-slate-300">
             {atDesk ? "已到窗口，正在办理" : "已排队"}
           </p>
@@ -199,7 +198,7 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
 
     return (
       <div className="space-y-4">
-        <div className="bg-board px-5 py-4 text-sign">
+        <div className="rounded-2xl bg-board px-5 py-5 text-sign shadow-card">
           <p className="text-sm text-slate-300">本次总耗时</p>
           <p className="font-display text-6xl font-bold leading-none tabular-nums">
             {formatDuration(elapsed)}

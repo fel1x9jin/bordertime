@@ -19,10 +19,10 @@ export default function CrowdPicker({ value, onChange }: Props) {
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(selected ? null : option)}
-            className={`min-h-14 border px-2 py-2 text-left ${
+            className={`min-h-16 rounded-2xl border px-3 py-2 text-left transition ${
               selected
-                ? "border-board bg-board text-white"
-                : "border-line bg-white hover:border-board"
+                ? "border-board bg-board text-white shadow-sm"
+                : "border-line bg-white hover:border-board hover:shadow-sm"
             }`}
           >
             <span className="block font-medium">{CROWD_LABEL[option]}</span>
