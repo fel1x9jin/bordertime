@@ -11,6 +11,9 @@ export interface Airport {
   cityZh: string;
   country: string;
   countryZh: string;
+  /** 机场真实地理坐标，只用于地球仪标记，不参与排队估算。 */
+  lat: number;
+  lng: number;
 }
 
 /**
