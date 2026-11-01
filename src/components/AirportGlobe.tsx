@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { MeshPhongMaterial } from "three";
+import Link from "next/link";
 import Globe, { type GlobeMethods } from "react-globe.gl";
 import { AIRPORTS } from "@/data/airports";
+import { routesFromAirport, showcaseRoutes, type DirectedRoute } from "@/data/routes";
 import { DIRECTION_LABEL } from "@/lib/types";
 import type { Airport, Direction } from "@/lib/types";
 import { PACE, markerHex, paceOf } from "./pace";
@@ -17,43 +17,23 @@ interface Props {
   statuses: GlobeStatuses;
 }
 
-/** 固定的装饰航线，不来自报告，也不表示真实航班。 */
-const ROUTES: Array<[string, string]> = [
-  ["LHR", "JFK"],
-  ["CDG", "NRT"],
-  ["SIN", "LHR"],
-  ["DXB", "SYD"],
-  ["LAX", "NRT"],
-  ["FRA", "PEK"],
-  ["HKG", "CDG"],
-  ["IST", "JFK"],
-  ["SFO", "ICN"],
-  ["AMS", "SIN"],
-  ["BCN", "JFK"],
-  ["DXB", "LHR"],
-];
-
-type Arc = {
-  id: string;
-  kind: "trail" | "plane";
-  startLat: number;
-  startLng: number;
-  endLat: number;
-  endLng: number;
-  shift: number;
-};
+type FlightArc = DirectedRoute & { id: string; shift: number; kind: "line" | "flight" };
 
 type Tier = {
-  arcs: number;
+  routeLimit: number;
+  showcaseLimit: number;
   pixel: number;
   rotate: boolean;
   flights: boolean;
 };
 
 type PinUi = {
+  root: HTMLDivElement;
   dot: HTMLSpanElement;
   rows: Record<Direction, { swatch: HTMLSpanElement; text: HTMLSpanElement }>;
 };
+
+const ARC_ALTITUDE = 0.18;
 
 function readTier(): Tier {
   const small = window.matchMedia("(max-width: 720px)").matches;
@@ -63,10 +43,11 @@ function readTier(): Tier {
     (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
   const low = save || cores <= 4;
   return {
-    arcs: small || low ? 5 : ROUTES.length,
+    routeLimit: small || low ? 8 : 16,
+    showcaseLimit: small ? 6 : 8,
     pixel: small || low ? 1 : Math.min(window.devicePixelRatio || 1, 1.6),
-    rotate: !reduce && !low,
-    flights: !reduce && !low,
+    rotate: !reduce && !save,
+    flights: !reduce,
   };
 }
 
@@ -76,48 +57,57 @@ function statusLine(ready: boolean, minutes: number | null): string {
   return `${minutes} 分钟 · ${PACE[paceOf(minutes)].label}`;
 }
 
-function buildArcs(limit: number, flights: boolean): Arc[] {
-  const byCode = new Map(AIRPORTS.map((airport) => [airport.code, airport]));
-  const arcs: Arc[] = [];
-  ROUTES.slice(0, limit).forEach(([from, to], index) => {
-    const a = byCode.get(from);
-    const b = byCode.get(to);
-    if (!a || !b) return;
-    const base = {
-      startLat: a.lat,
-      startLng: a.lng,
-      endLat: b.lat,
-      endLng: b.lng,
-      shift: index * 0.17,
-    };
-    arcs.push({ ...base, id: `${from}-${to}-trail`, kind: "trail" });
-    if (flights) arcs.push({ ...base, id: `${from}-${to}-plane`, kind: "plane" });
-  });
-  return arcs;
+function toVector(lat: number, lng: number) {
+  const phi = (lat * Math.PI) / 180;
+  const theta = (lng * Math.PI) / 180;
+  return {
+    x: Math.cos(phi) * Math.cos(theta),
+    y: Math.cos(phi) * Math.sin(theta),
+    z: Math.sin(phi),
+  };
 }
 
+function toLatLng(vector: { x: number; y: number; z: number }) {
+  const lat = (Math.asin(Math.max(-1, Math.min(1, vector.z))) * 180) / Math.PI;
+  const lng = (Math.atan2(vector.y, vector.x) * 180) / Math.PI;
+  return { lat, lng };
+}
+
+function along(route: DirectedRoute, t: number) {
+  const start = toVector(route.startLat, route.startLng);
+  const end = toVector(route.endLat, route.endLng);
+  const dot = Math.max(-1, Math.min(1, start.x * end.x + start.y * end.y + start.z * end.z));
+  const omega = Math.acos(dot);
+  if (omega < 1e-4) return { lat: route.startLat, lng: route.startLng };
+  const sinOmega = Math.sin(omega);
+  const a = Math.sin((1 - t) * omega) / sinOmega;
+  const b = Math.sin(t * omega) / sinOmega;
+  return toLatLng({
+    x: a * start.x + b * end.x,
+    y: a * start.y + b * end.y,
+    z: a * start.z + b * end.z,
+  });
+}
+
+const PLANE_MARK =
+  '<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#0B1F36" d="M30 16.2 17 12.2V7.2l2.2-1.6V3.4L16 5.6 12.8 3.4v2.2L15 7.2v5L2 16.2v2.2l13-2.2v6.2l-3 1.8v2l4-1.4 4 1.4v-2l-3-1.8v-6.2l13 2.2v-2.2z"/></svg>';
+
 export default function AirportGlobe({ ready, statuses }: Props) {
-  const router = useRouter();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const flightLayerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const pins = useRef(new Map<string, PinUi>());
-  const pushRef = useRef(router.push);
-  pushRef.current = router.push;
-
-  const globeMaterial = useMemo(
-    () =>
-      new MeshPhongMaterial({
-        color: "#1b568f",
-        emissive: "#0d3a66",
-        emissiveIntensity: 0.42,
-        shininess: 14,
-      }),
-    [],
-  );
+  const selectRef = useRef<(code: string) => void>(() => {});
+  const selectedAt = useRef(0);
 
   const [tier, setTier] = useState<Tier | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [painted, setPainted] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  selectRef.current = (code) => {
+    selectedAt.current = Date.now();
+    setSelected(code);
+  };
 
   useEffect(() => {
     const apply = () => setTier(readTier());
@@ -142,10 +132,27 @@ export default function AirportGlobe({ ready, statuses }: Props) {
     return () => observer.disconnect();
   }, []);
 
-  const arcs = useMemo(
-    () => (tier ? buildArcs(tier.arcs, tier.flights) : []),
-    [tier],
-  );
+  const routes = useMemo(() => {
+    if (!tier) return [];
+    const picked = selected
+      ? routesFromAirport(selected, tier.routeLimit)
+      : showcaseRoutes(tier.showcaseLimit);
+    return picked.map((route, index) => ({
+      ...route,
+      id: `${route.from}-${route.to}`,
+      shift: (index * 0.17) % 1,
+    }));
+  }, [selected, tier]);
+
+  const selectedAirport = AIRPORTS.find((airport) => airport.code === selected) ?? null;
+  const arcData = useMemo(() => {
+    return routes.flatMap((route) => {
+      const line: FlightArc = { ...route, id: `${route.id}-line`, kind: "line" };
+      if (!tier?.flights) return [line];
+      const flight: FlightArc = { ...route, id: `${route.id}-flight`, kind: "flight" };
+      return [line, flight];
+    });
+  }, [routes, tier]);
 
   useEffect(() => {
     for (const airport of AIRPORTS) {
@@ -155,26 +162,31 @@ export default function AirportGlobe({ ready, statuses }: Props) {
       const departure = row ? row.departure : null;
       const arrival = row ? row.arrival : null;
       ui.dot.style.background = ready ? markerHex(departure, arrival) : "#C5CDD6";
+      ui.root.classList.toggle("is-selected", airport.code === selected);
       for (const direction of ["departure", "arrival"] as const) {
         const minutes = direction === "departure" ? departure : arrival;
         ui.rows[direction].swatch.style.background = ready ? PACE[paceOf(minutes)].hex : "#C5CDD6";
         ui.rows[direction].text.textContent = `${DIRECTION_LABEL[direction]} ${statusLine(ready, minutes)}`;
       }
     }
-  }, [ready, statuses, painted]);
+  }, [ready, statuses, painted, selected]);
 
   const makePin = useCallback((airport: Airport) => {
     const cached = pins.current.get(airport.code);
-    if (cached) return cached.dot.parentElement as HTMLButtonElement;
+    if (cached) return cached.root;
+
+    const root = document.createElement("div");
+    root.className = "globe-pin";
 
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "globe-pin";
-    button.setAttribute("aria-label", `${airport.code} ${airport.nameZh}`);
+    button.className = "globe-pin-hit";
+    button.setAttribute("aria-label", `查看从${airport.nameZh}出发的航线`);
 
     const dot = document.createElement("span");
     dot.className = "globe-pin-dot";
     dot.style.background = "#C5CDD6";
+    button.append(dot);
 
     const tip = document.createElement("span");
     tip.className = "globe-tip";
@@ -200,40 +212,39 @@ export default function AirportGlobe({ ready, statuses }: Props) {
       rows[direction] = { swatch, text };
     }
 
-    button.append(dot, tip);
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
+    const link = document.createElement("a");
+    link.className = "globe-tip-link";
+    link.href = `/airports/${airport.code}`;
+    link.textContent = "查看边检排队";
+    tip.append(link);
+
+    root.addEventListener("pointerdown", (event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("a")) return;
       event.stopPropagation();
-      pushRef.current(`/airports/${airport.code}`);
+      selectRef.current(airport.code);
     });
-    pins.current.set(airport.code, { dot, rows });
-    return button;
+
+    root.append(button, tip);
+    pins.current.set(airport.code, { root, dot, rows });
+    return root;
   }, []);
 
   const renderPin = useCallback((datum: object) => makePin(datum as Airport), [makePin]);
 
   function onReady() {
-    const globe = globeRef.current as
-      | (GlobeMethods & {
-          globeMaterial: () => {
-            color: { set: (hex: string) => void };
-            emissive: { set: (hex: string) => void };
-            emissiveIntensity: number;
-            shininess: number;
-          };
-        })
-      | undefined;
+    const globe = globeRef.current;
     if (!globe || !tier) return;
     globe.renderer().setPixelRatio(tier.pixel);
     const controls = globe.controls();
     controls.autoRotate = tier.rotate;
-    controls.autoRotateSpeed = tier.arcs < ROUTES.length ? 0.28 : 0.42;
+    controls.autoRotateSpeed = 0.35;
     controls.enableZoom = false;
     controls.enablePan = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.rotateSpeed = 0.72;
-    globe.pointOfView({ lat: 28, lng: 8, altitude: tier.arcs < ROUTES.length ? 1.95 : 1.62 }, 0);
+    globe.pointOfView({ lat: 22, lng: 105, altitude: tier.routeLimit < 16 ? 1.95 : 1.62 }, 0);
     setPainted(true);
   }
 
@@ -241,7 +252,7 @@ export default function AirportGlobe({ ready, statuses }: Props) {
     if (!painted || !tier) return;
     const controls = globeRef.current?.controls();
     if (!controls) return;
-    controls.autoRotate = tier.rotate;
+    controls.autoRotate = tier.rotate && !selected;
     const el = wrapRef.current;
     if (!el) return;
     let resumeId = 0;
@@ -252,7 +263,7 @@ export default function AirportGlobe({ ready, statuses }: Props) {
     const resume = () => {
       window.clearTimeout(resumeId);
       resumeId = window.setTimeout(() => {
-        if (tier.rotate) controls.autoRotate = true;
+        if (tier.rotate && !selected) controls.autoRotate = true;
       }, 900);
     };
     el.addEventListener("pointerdown", pause);
@@ -260,7 +271,7 @@ export default function AirportGlobe({ ready, statuses }: Props) {
     el.addEventListener("pointercancel", resume);
     const observer = new IntersectionObserver(
       ([entry]) => {
-        controls.autoRotate = tier.rotate && entry.isIntersecting;
+        controls.autoRotate = tier.rotate && !selected && entry.isIntersecting;
       },
       { threshold: 0.15 },
     );
@@ -272,7 +283,73 @@ export default function AirportGlobe({ ready, statuses }: Props) {
       el.removeEventListener("pointercancel", resume);
       observer.disconnect();
     };
-  }, [painted, tier]);
+  }, [painted, tier, selected]);
+
+  useEffect(() => {
+    if (!painted || !selected) return;
+    const airport = AIRPORTS.find((item) => item.code === selected);
+    const globe = globeRef.current;
+    if (!airport || !globe) return;
+    globe.pointOfView({ lat: airport.lat, lng: airport.lng, altitude: 1.72 }, 900);
+  }, [painted, selected]);
+
+  useEffect(() => {
+    const globe = globeRef.current;
+    const layer = flightLayerRef.current;
+    if (!painted || !globe || !layer || routes.length === 0) return;
+
+    const marks = routes.map(() => {
+      const mark = document.createElement("span");
+      mark.className = "globe-flight";
+      mark.innerHTML = PLANE_MARK;
+      layer.append(mark);
+      return mark;
+    });
+
+    const place = (index: number, t: number) => {
+      const route = routes[index];
+      const here = along(route, t);
+      const next = along(route, Math.min(0.985, t + 0.025));
+      const altitude = 0.02 + ARC_ALTITUDE * Math.sin(Math.PI * t);
+      const coords = globe.getCoords(here.lat, here.lng, altitude);
+      const camera = globe.camera().position;
+      const facing = coords.x * camera.x + coords.y * camera.y + coords.z * camera.z;
+      const mark = marks[index];
+      if (facing <= 0) {
+        mark.style.visibility = "hidden";
+        return;
+      }
+      const from = globe.getScreenCoords(here.lat, here.lng, altitude);
+      const to = globe.getScreenCoords(next.lat, next.lng, altitude);
+      const angle = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
+      mark.style.visibility = "visible";
+      mark.style.left = `${from.x}px`;
+      mark.style.top = `${from.y}px`;
+      const icon = mark.firstElementChild as HTMLElement | null;
+      if (icon) icon.style.transform = `rotate(${angle}deg)`;
+    };
+
+    if (!tier?.flights) {
+      routes.forEach((_, index) => place(index, 0.42));
+      return () => marks.forEach((mark) => mark.remove());
+    }
+
+    let frame = 0;
+    const started = performance.now();
+    const loop = (now: number) => {
+      const elapsed = (now - started) / 1000;
+      routes.forEach((route, index) => {
+        const t = (elapsed / 7.5 + route.shift) % 1;
+        place(index, t);
+      });
+      frame = window.requestAnimationFrame(loop);
+    };
+    frame = window.requestAnimationFrame(loop);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      marks.forEach((mark) => mark.remove());
+    };
+  }, [painted, routes, tier]);
 
   return (
     <div ref={wrapRef} className="relative h-full w-full touch-none">
@@ -290,39 +367,65 @@ export default function AirportGlobe({ ready, statuses }: Props) {
               width={size.w}
               height={size.h}
               backgroundColor="rgba(0,0,0,0)"
-              globeImageUrl={null}
-              globeMaterial={globeMaterial}
-              showGraticules
+              globeImageUrl="/earth-blue-marble.jpg"
+              showGraticules={false}
               showAtmosphere
-              atmosphereColor="#FFC72C"
-              atmosphereAltitude={0.16}
+              atmosphereColor="#b9d7ff"
+              atmosphereAltitude={0.18}
               onGlobeReady={onReady}
+              onGlobeClick={() => {
+                if (Date.now() - selectedAt.current < 500) return;
+                setSelected(null);
+              }}
               htmlElementsData={AIRPORTS}
               htmlLat="lat"
               htmlLng="lng"
               htmlAltitude={0.012}
               htmlTransitionDuration={0}
               htmlElement={renderPin}
-              arcsData={arcs}
+              arcsData={arcData}
               arcStartLat="startLat"
               arcStartLng="startLng"
               arcEndLat="endLat"
               arcEndLng="endLng"
+              arcLabel={(datum: object) => {
+                const arc = datum as FlightArc;
+                if (arc.kind !== "line") return "";
+                return `${arc.fromCity} → ${arc.toCity}`;
+              }}
               arcColor={(datum: object) =>
-                (datum as Arc).kind === "plane" ? "#FFE08A" : "rgba(255,199,44,0.7)"
+                (datum as FlightArc).kind === "flight" ? "#fffaf0" : "rgba(255, 206, 72, 0.9)"
               }
-              arcAltitude={0.32}
-              arcStroke={(datum: object) => ((datum as Arc).kind === "plane" ? 0.7 : 0.35)}
-              arcDashLength={(datum: object) => ((datum as Arc).kind === "plane" ? 0.18 : 1)}
-              arcDashGap={(datum: object) => ((datum as Arc).kind === "plane" ? 0.82 : 0)}
-              arcDashInitialGap={(datum: object) => (datum as Arc).shift}
+              arcAltitude={ARC_ALTITUDE}
+              arcStroke={(datum: object) => ((datum as FlightArc).kind === "flight" ? 1.5 : 0.42)}
+              arcDashLength={(datum: object) => ((datum as FlightArc).kind === "flight" ? 0.05 : 1)}
+              arcDashGap={(datum: object) => ((datum as FlightArc).kind === "flight" ? 0.95 : 0)}
+              arcDashInitialGap={(datum: object) => ((datum as FlightArc).kind === "flight" ? (datum as FlightArc).shift : 0)}
               arcDashAnimateTime={(datum: object) =>
-                (datum as Arc).kind === "plane" && tier.flights ? 4200 : 0
+                (datum as FlightArc).kind === "flight" && tier.flights ? 6400 : 0
               }
-              arcCurveResolution={tier.flights ? 48 : 24}
-              arcsTransitionDuration={0}
+              arcCurveResolution={48}
+              arcsTransitionDuration={400}
             />
           </div>
+          <div
+            ref={flightLayerRef}
+            className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+          />
+          {selectedAirport && (
+            <div className="absolute inset-x-2 bottom-1 z-40 flex items-center justify-between gap-2 rounded-2xl bg-white/95 px-3 py-2 text-xs text-ink shadow-card">
+              <p className="min-w-0 truncate">
+                <span className="font-semibold">{selectedAirport.code}</span>
+                <span className="text-slate-600"> {selectedAirport.cityZh}出发 · {routes.length} 条航线</span>
+              </p>
+              <Link href={`/airports/${selectedAirport.code}`} className="shrink-0 font-semibold underline">
+                查看排队
+              </Link>
+              <button type="button" onClick={() => setSelected(null)} className="shrink-0 text-slate-500">
+                关闭
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

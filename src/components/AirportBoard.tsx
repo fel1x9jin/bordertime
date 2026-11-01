@@ -9,7 +9,9 @@ import { summarize, VALID_WINDOW_MS } from "@/lib/stats";
 import type { Summary } from "@/lib/stats";
 import { DIRECTIONS, DIRECTION_LABEL } from "@/lib/types";
 import type { Direction } from "@/lib/types";
+import { useAirportActivity } from "@/lib/useAirportUpdates";
 import { useReports } from "@/lib/useReports";
+import AirportActivity from "./AirportActivity";
 import AirportGlobeSlot from "./AirportGlobeSlot";
 import type { GlobeStatuses } from "./AirportGlobe";
 import DataNotice from "./DataNotice";
@@ -70,6 +72,7 @@ export default function AirportBoard() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState<RegionId | "all">("all");
   const { ready, now, reports } = useReports();
+  const activity = useAirportActivity();
 
   const windowHours = VALID_WINDOW_MS / 3_600_000;
 
@@ -162,7 +165,7 @@ export default function AirportBoard() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="输入 BCN、MAD、LHR，或城市名"
+                placeholder="输入 CAN、PVG、LHR，或城市名"
                 autoComplete="off"
                 className="min-h-14 w-full rounded-2xl border-0 bg-white px-5 text-base text-ink shadow-lift transition-shadow duration-200 placeholder:text-slate-400 focus-visible:shadow-lift"
               />
@@ -174,7 +177,7 @@ export default function AirportBoard() {
               <AirportGlobeSlot ready={ready} statuses={globeStatuses} />
             </div>
             <p className="mt-1 text-center text-xs leading-relaxed text-slate-300 lg:text-left">
-              拖动旋转，点击机场。黄色弧线只是装饰，不代表航班或排队。
+              拖动旋转。点一个机场，飞机沿航线飞往其他机场，再点空白处可取消。
             </p>
           </div>
         </div>
@@ -273,6 +276,7 @@ export default function AirportBoard() {
                             />
                           ))}
                         </div>
+                        <AirportActivity count={activity[airport.code] ?? 0} />
                       </div>
                     </Link>
                   </m.li>

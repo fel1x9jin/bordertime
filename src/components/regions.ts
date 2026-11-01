@@ -29,12 +29,16 @@ const BY_COUNTRY: Record<string, RegionId> = {
   Switzerland: "europe",
   "Türkiye": "europe",
   "United Arab Emirates": "asia",
+  Qatar: "asia",
   Singapore: "asia",
+  Thailand: "asia",
+  Malaysia: "asia",
   "Hong Kong SAR, China": "asia",
   Japan: "asia",
   "South Korea": "asia",
   China: "asia",
   "United States": "americas",
+  Canada: "americas",
   Australia: "oceania",
 };
 
