@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Crowd } from "@/lib/types";
 import type { SubmitResult } from "@/lib/useReports";
+import { primaryButtonClass } from "./buttons";
 import CrowdPicker from "./CrowdPicker";
 
 interface Props {
@@ -48,7 +49,7 @@ export default function CrowdForm({ onSubmit }: Props) {
         type="button"
         disabled={!crowd || submitting}
         onClick={handleSubmit}
-        className="min-h-12 w-full bg-board px-4 py-3 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+        className={primaryButtonClass}
       >
         {submitting ? "提交中…" : "提交拥挤程度"}
       </button>

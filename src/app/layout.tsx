@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
+import MotionRoot from "@/components/MotionRoot";
 import SiteFooter from "@/components/SiteFooter";
 
 const body = Barlow({
@@ -26,8 +27,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN" className={`${body.variable} ${display.variable}`}>
-      <body className="min-h-screen bg-mist font-body text-ink antialiased">
-        {children}
+      <body className="flex min-h-screen flex-col bg-mist font-body text-ink antialiased">
+        <MotionRoot>
+          <div className="flex-1">{children}</div>
+        </MotionRoot>
         <SiteFooter />
       </body>
     </html>

@@ -1,0 +1,41 @@
+# 大约每 3 天读一次 reports，避免 Supabase 免费项目因长期没有访问而被暂停。
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: "0 8 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read one report row
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_PUBLISHABLE_KEY}" ]; then
+            echo "Missing repository secret SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY"
+            exit 1
+          fi
+          base="${SUPABASE_URL%/}"
+          status="$(curl --silent --show-error --output /tmp/supabase-keepalive.json --write-out "%{http_code}" \
+            --get \
+            --data-urlencode "select=id" \
+            --data-urlencode "limit=1" \
+            --header "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_PUBLISHABLE_KEY}" \
+            --header "Accept: application/json" \
+            "${base}/rest/v1/reports")"
+          echo "HTTP ${status}"
+          if [ "${status}" -lt 200 ] || [ "${status}" -ge 300 ]; then
+            echo "Supabase keepalive failed"
+            cat /tmp/supabase-keepalive.json
+            exit 1
+          fi
