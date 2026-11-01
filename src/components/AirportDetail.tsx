@@ -10,6 +10,7 @@ import type { Airport, Direction } from "@/lib/types";
 import { useReports } from "@/lib/useReports";
 import CrowdForm from "./CrowdForm";
 import DataNotice from "./DataNotice";
+import LiveUpdates from "./LiveUpdates";
 import { EASE } from "./motion";
 import ReportList from "./ReportList";
 import SlidingChoice from "./SlidingChoice";
@@ -184,6 +185,8 @@ export default function AirportDetail({ airport }: { airport: Airport }) {
           </h2>
           <ReportList reports={directionReports} now={now} ready={ready} />
         </section>
+
+        <LiveUpdates airportCode={airport.code} airportName={airport.nameZh} />
       </div>
     </div>
   );

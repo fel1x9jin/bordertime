@@ -135,7 +135,33 @@
   transition-duration: 90ms;
 }
 
+.globe-flight {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffc72c;
+  box-shadow: 0 0 0 2px rgba(11, 31, 54, 0.55);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.globe-flight svg {
+  width: 18px;
+  height: 18px;
+}
+
 .globe-pin {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  pointer-events: auto !important;
+}
+
+.globe-pin-hit {
   display: grid;
   width: 28px;
   height: 28px;
@@ -144,7 +170,6 @@
   padding: 0;
   background: transparent;
   cursor: pointer;
-  pointer-events: auto !important;
 }
 
 .globe-pin-dot {
@@ -158,8 +183,14 @@
 }
 
 .globe-pin:hover .globe-pin-dot,
-.globe-pin:focus-visible .globe-pin-dot {
+.globe-pin:focus-within .globe-pin-dot {
   transform: scale(1.35);
+}
+
+.globe-pin.is-selected .globe-pin-dot {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 5px #ffc72c;
 }
 
 .globe-tip {
@@ -181,7 +212,7 @@
 }
 
 .globe-pin:hover .globe-tip,
-.globe-pin:focus-visible .globe-tip {
+.globe-pin:focus-within .globe-tip {
   display: block;
 }
 
@@ -206,6 +237,31 @@
   gap: 6px;
   margin-top: 4px;
   font-size: 12px;
+}
+
+.media-lightbox {
+  width: min(960px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.media-lightbox::backdrop {
+  background: rgba(11, 37, 69, 0.82);
+}
+
+.globe-tip-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0b2545;
+  pointer-events: auto;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .globe-tip-swatch {
@@ -237,7 +293,7 @@
   .press-card:active,
   .globe-pin-dot,
   .globe-pin:hover .globe-pin-dot,
-  .globe-pin:focus-visible .globe-pin-dot {
+  .globe-pin:focus-within .globe-pin-dot {
     transform: none !important;
     transition: none !important;
   }
