@@ -3,6 +3,34 @@ export type Crowd = "light" | "moderate" | "heavy";
 // mock：本地模拟示例；user：本机演示模式下提交的；remote：来自 Supabase 的旅客报告
 export type ReportSource = "mock" | "user" | "remote";
 
+/** ISO 3166-1 alpha-2。英国用 GB（不是保留码 UK）。香港机场用 HK，对应中国香港特别行政区。 */
+export const COUNTRY_CODES = [
+  "AE",
+  "AU",
+  "CA",
+  "CH",
+  "CN",
+  "DE",
+  "ES",
+  "FR",
+  "GB",
+  "HK",
+  "IT",
+  "JP",
+  "KR",
+  "MY",
+  "NL",
+  "PT",
+  "QA",
+  "SA",
+  "SG",
+  "TH",
+  "TR",
+  "US",
+] as const;
+
+export type CountryCode = (typeof COUNTRY_CODES)[number];
+
 export interface Airport {
   code: string;
   name: string;
@@ -11,6 +39,7 @@ export interface Airport {
   cityZh: string;
   country: string;
   countryZh: string;
+  countryCode: CountryCode;
   /** 机场真实地理坐标，只用于地球仪标记，不参与排队估算。 */
   lat: number;
   lng: number;

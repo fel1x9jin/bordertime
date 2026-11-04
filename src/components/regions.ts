@@ -30,6 +30,7 @@ const BY_COUNTRY: Record<string, RegionId> = {
   "Türkiye": "europe",
   "United Arab Emirates": "asia",
   Qatar: "asia",
+  "Saudi Arabia": "asia",
   Singapore: "asia",
   Thailand: "asia",
   Malaysia: "asia",

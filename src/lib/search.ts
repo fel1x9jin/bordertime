@@ -1,6 +1,6 @@
 import type { Airport } from "./types";
 
-/** 按三字码、机场名、城市、国家（中英文）搜索 */
+/** 按三字码、机场名、城市、国家（中英文）搜索。国旗是单独画上去的，不参与匹配。 */
 export function searchAirports(airports: Airport[], query: string): Airport[] {
   const q = query.trim().toLowerCase();
   if (!q) return airports;

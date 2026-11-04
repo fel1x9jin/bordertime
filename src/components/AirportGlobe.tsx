@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Globe, { type GlobeMethods } from "react-globe.gl";
 import { AIRPORTS } from "@/data/airports";
+import { appendCountryFlag } from "@/lib/flags";
 import { routesFromAirport, showcaseRoutes, type DirectedRoute } from "@/data/routes";
 import { DIRECTION_LABEL } from "@/lib/types";
 import type { Airport, Direction } from "@/lib/types";
@@ -181,7 +182,7 @@ export default function AirportGlobe({ ready, statuses }: Props) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "globe-pin-hit";
-    button.setAttribute("aria-label", `查看从${airport.nameZh}出发的航线`);
+    button.setAttribute("aria-label", `查看从${airport.nameZh}（${airport.countryZh}）出发的航线`);
 
     const dot = document.createElement("span");
     dot.className = "globe-pin-dot";
@@ -196,6 +197,7 @@ export default function AirportGlobe({ ready, statuses }: Props) {
     const name = document.createElement("span");
     name.className = "globe-tip-name";
     name.textContent = airport.nameZh;
+    appendCountryFlag(name, airport.countryCode, airport.countryZh);
     tip.append(code, name);
 
     const rows = {} as PinUi["rows"];

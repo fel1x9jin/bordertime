@@ -52,6 +52,10 @@ npm run build       # 生产构建
    `supabase/migrations/20261101150000_airport_updates.sql`。
    这一步新建 `public.airport_updates` 和公开存储桶 `airport-media`，
    不会修改已有的 `public.reports`。还没运行时，机场页显示「暂无现场动态」，其余功能照常可用。
+   已经跑过这份脚本的项目，再运行
+   `supabase/migrations/20261104190000_airport_catalog.sql`，
+   现场动态才能发给新加入的机场。这一步同样不修改、不删除 `public.reports`。
+   西安咸阳（XIY）不再出现在页面上；库里已有的排队报告会留着，只是没有对应机场页。
 
 连接后不再显示任何模拟数据；没有报告的机场显示「暂无数据」。
 
