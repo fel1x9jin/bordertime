@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
+import { findAirport } from "@/data/airports";
 import { clearTimer, loadTimer, saveTimer } from "@/lib/storage";
 import { formatDuration } from "@/lib/format";
 import { DIRECTION_LABEL } from "@/lib/types";
 import type { ActiveTimer, Airport, Crowd, Direction } from "@/lib/types";
 import type { SubmitResult } from "@/lib/useReports";
+import AirportName from "./AirportName";
 import { primaryButtonClass, secondaryButtonClass } from "./buttons";
 import CrowdPicker from "./CrowdPicker";
 import { EASE } from "./motion";
@@ -73,6 +75,7 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     timer !== null &&
     timer.airportCode === airport.code &&
     timer.direction === direction;
+  const foreignAirport = timer ? findAirport(timer.airportCode) : undefined;
 
   function update(next: ActiveTimer) {
     saveTimer(next);
@@ -157,7 +160,15 @@ export default function WaitTimer({ airport, direction, onSubmit }: Props) {
     body = (
       <div className="space-y-3">
         <p className="leading-relaxed">
-          你有一个未完成的计时：{timer.airportCode}{" "}
+          你有一个未完成的计时：
+          {foreignAirport ? (
+            <>
+              <AirportName airport={foreignAirport} />
+              <span className="whitespace-nowrap">（{foreignAirport.code}）</span>
+            </>
+          ) : (
+            timer.airportCode
+          )}{" "}
           {DIRECTION_LABEL[timer.direction]}。同一时间只能记录一次排队。
         </p>
         <button type="button" onClick={discard} className={secondaryButton}>

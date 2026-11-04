@@ -12,7 +12,9 @@ import type { Direction } from "@/lib/types";
 import { useAirportActivity } from "@/lib/useAirportUpdates";
 import { useReports } from "@/lib/useReports";
 import AirportActivity from "./AirportActivity";
+import AirportName from "./AirportName";
 import AirportGlobeSlot from "./AirportGlobeSlot";
+import CountryFlag from "./CountryFlag";
 import type { GlobeStatuses } from "./AirportGlobe";
 import DataNotice from "./DataNotice";
 import { EASE, SPRING } from "./motion";
@@ -261,9 +263,13 @@ export default function AirportBoard() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-3 font-medium leading-snug">{airport.nameZh}</p>
-                      <p className="mt-0.5 truncate text-sm text-slate-500">
-                        {airport.name} · {airport.countryZh}
+                      <p className="mt-3 min-w-0 font-medium leading-snug">
+                        <AirportName airport={airport} />
+                      </p>
+                      <p className="mt-0.5 flex min-w-0 items-center text-sm text-slate-500">
+                        <span className="min-w-0 truncate">{airport.name}</span>
+                        <CountryFlag code={airport.countryCode} label={airport.countryZh} decorative />
+                        <span className="shrink-0"> · {airport.countryZh}</span>
                       </p>
                       <div className="mt-auto pt-4">
                         <div className="space-y-2.5 rounded-2xl bg-mist px-3.5 py-3">

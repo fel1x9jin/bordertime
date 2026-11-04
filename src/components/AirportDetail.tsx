@@ -8,6 +8,7 @@ import { summarize, VALID_WINDOW_MS } from "@/lib/stats";
 import { CROWD_LABEL, CROWD_STYLE, DIRECTIONS, DIRECTION_LABEL } from "@/lib/types";
 import type { Airport, Direction } from "@/lib/types";
 import { useReports } from "@/lib/useReports";
+import AirportName from "./AirportName";
 import CrowdForm from "./CrowdForm";
 import DataNotice from "./DataNotice";
 import LiveUpdates from "./LiveUpdates";
@@ -50,9 +51,12 @@ export default function AirportDetail({ airport }: { airport: Airport }) {
           <h1 className="rise-in mt-6 font-display text-7xl font-bold leading-none tracking-tight sm:text-8xl">
             {airport.code}
           </h1>
-          <p className="mt-3 text-xl font-medium text-sign">{airport.nameZh}</p>
-          <p className="mt-1 text-sm text-slate-300">
-            {airport.name} · {airport.cityZh} · {airport.countryZh}
+          <p className="mt-3 text-xl font-medium leading-snug text-sign">
+            <AirportName airport={airport} />
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-slate-300">
+            <AirportName airport={airport} field="name" decorative />
+            <span> · {airport.cityZh} · {airport.countryZh}</span>
           </p>
         </div>
       </header>

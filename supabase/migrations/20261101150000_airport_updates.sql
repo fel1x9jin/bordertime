@@ -90,9 +90,9 @@ create table if not exists public.airport_updates (
   constraint airport_updates_airport_id_check check (
     airport_id in (
       'BCN', 'MAD', 'LHR', 'CDG', 'AMS', 'FRA', 'MUC', 'FCO', 'MXP', 'LIS',
-      'ZRH', 'IST', 'DXB', 'DOH', 'JFK', 'LAX', 'SFO', 'ORD', 'YVR', 'SIN',
-      'BKK', 'KUL', 'HKG', 'NRT', 'ICN', 'PVG', 'PEK', 'CAN', 'SZX', 'TFU',
-      'CKG', 'HGH', 'XIY', 'SYD', 'MEL'
+      'ZRH', 'IST', 'DXB', 'DOH', 'JED', 'RUH', 'JFK', 'LAX', 'SFO', 'ORD',
+      'YVR', 'SIN', 'BKK', 'KUL', 'HKG', 'NRT', 'ICN',
+      'PVG', 'PEK', 'CAN', 'SZX', 'TFU', 'CKG', 'HGH', 'SYD', 'MEL'
     )
   ),
   constraint airport_updates_body_check check (
@@ -200,9 +200,9 @@ create policy airport_media_anon_insert
     bucket_id = 'airport-media'
     and (storage.foldername(name))[1] in (
       'BCN', 'MAD', 'LHR', 'CDG', 'AMS', 'FRA', 'MUC', 'FCO', 'MXP', 'LIS',
-      'ZRH', 'IST', 'DXB', 'DOH', 'JFK', 'LAX', 'SFO', 'ORD', 'YVR', 'SIN',
-      'BKK', 'KUL', 'HKG', 'NRT', 'ICN', 'PVG', 'PEK', 'CAN', 'SZX', 'TFU',
-      'CKG', 'HGH', 'XIY', 'SYD', 'MEL'
+      'ZRH', 'IST', 'DXB', 'DOH', 'JED', 'RUH', 'JFK', 'LAX', 'SFO', 'ORD',
+      'YVR', 'SIN', 'BKK', 'KUL', 'HKG', 'NRT', 'ICN',
+      'PVG', 'PEK', 'CAN', 'SZX', 'TFU', 'CKG', 'HGH', 'SYD', 'MEL'
     )
   );
 
